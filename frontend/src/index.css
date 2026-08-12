@@ -1,0 +1,512 @@
+/* ============================================================
+   InsightOps — Cracker-Inspired Cyber Security Dark Theme
+   Inspired by: Phenomenon Studio / Cracker SaaS Design
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ── Fonts ────────────────────────────────────── */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* ── Obsidian Background Scale ────────────────── */
+  --bg-primary:    #05070d;   /* Pitch-black canvas */
+  --bg-secondary:  #090e17;   /* Cards — deep navy-slate */
+  --bg-tertiary:   #0d1422;   /* Elevated surfaces */
+  --bg-hover:      #111827;   /* Subtle row/item hover */
+
+  /* ── Cyber Neon Green Brand ───────────────────── */
+  --neon:          #00ff88;   /* Electric primary neon */
+  --neon-dim:      #00cc6e;   /* Hover / pressed state */
+  --neon-muted:    #00ff8833; /* 20% opacity tint */
+  --neon-glow-sm:  0 0 8px rgba(0, 255, 136, 0.35);
+  --neon-glow-md:  0 0 20px rgba(0, 255, 136, 0.25), 0 0 40px rgba(0, 255, 136, 0.10);
+  --neon-glow-lg:  0 0 40px rgba(0, 255, 136, 0.3),  0 0 80px rgba(0, 255, 136, 0.12);
+
+  /* ── Secondary Accent (Cyan) ──────────────────── */
+  --accent:        #06b6d4;
+  --accent-dim:    #0891b2;
+  --accent-glow:   linear-gradient(135deg, #00ff88 0%, #06b6d4 100%);
+
+  /* ── Text Hierarchy ───────────────────────────── */
+  --text-primary:   #f0fdf4;  /* Near-white with green tint */
+  --text-secondary: #94a3b8;  /* Muted slate */
+  --text-muted:     #475569;  /* Dimmed / labels */
+  --text-neon:      #00ff88;  /* Highlighted data */
+
+  /* ── Borders ──────────────────────────────────── */
+  --border:        rgba(0, 255, 136, 0.10);
+  --border-bright: rgba(0, 255, 136, 0.30);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+
+  /* ── Semantic Colors ──────────────────────────── */
+  --success:  #00ff88;
+  --warning:  #f59e0b;
+  --error:    #ff4444;
+  --info:     #06b6d4;
+
+  /* ── Monospace (data / numbers) ──────────────── */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+/* ── Base Reset ────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* Cyber grid background */
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 255, 136, 0.06) 0%, transparent 70%),
+    linear-gradient(rgba(0, 255, 136, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.025) 1px, transparent 1px);
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+  background-attachment: fixed;
+}
+
+/* ── Custom Neon Scrollbar ─────────────────────── */
+::-webkit-scrollbar              { width: 5px; height: 5px; }
+::-webkit-scrollbar-track        { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb        { background: rgba(0, 255, 136, 0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--neon); box-shadow: var(--neon-glow-sm); }
+
+/* ── Utility Classes ───────────────────────────── */
+
+/* Glassmorphism — now with neon green tint */
+.glass-panel {
+  background: rgba(9, 14, 23, 0.80) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.glass-panel:hover {
+  border-color: var(--border-bright) !important;
+  box-shadow: var(--neon-glow-md) !important;
+}
+
+/* Gradient brand text */
+.gradient-text {
+  background: linear-gradient(135deg, #00ff88 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Monospace data value display */
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* Neon badge / status pill */
+.neon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border-bright);
+  background: var(--neon-muted);
+  color: var(--neon);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Hover scale for cards */
+.hover-scale {
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.hover-scale:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--neon-glow-md);
+}
+
+/* ── Animations ────────────────────────────────── */
+
+/* Page / content fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Pulsing neon glow — live indicator dot */
+@keyframes neonPulse {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(0, 255, 136, 0.8); opacity: 1; }
+  50%       { box-shadow: 0 0 12px 4px rgba(0, 255, 136, 0.3); opacity: 0.7; }
+}
+.pulse-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neon);
+  animation: neonPulse 1.8s ease-in-out infinite;
+}
+.pulse-dot.offline {
+  background: var(--error);
+  animation: none;
+  box-shadow: 0 0 4px 1px rgba(255, 68, 68, 0.6);
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, rgba(0, 255, 136, 0.04) 50%, var(--bg-tertiary) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
+}
+
+/* Text glitch flicker for headers */
+@keyframes flicker {
+  0%,100% { opacity: 1; }
+  92%      { opacity: 1; }
+  93%      { opacity: 0.6; }
+  94%      { opacity: 1; }
+  96%      { opacity: 0.7; }
+  97%      { opacity: 1; }
+}
+.flicker {
+  animation: flicker 6s ease-in-out infinite;
+}
+
+/* ── Ant Design Overrides ──────────────────────── */
+
+/* Layout */
+.ant-layout {
+  background: var(--bg-primary) !important;
+}
+
+/* Sidebar */
+.sider-panel {
+  background: var(--bg-secondary) !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+/* Sticky frosted header */
+.header-panel {
+  background: rgba(5, 7, 13, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid var(--border) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+}
+
+/* Cards */
+.ant-card {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.ant-card:hover {
+  border-color: var(--border-bright) !important;
+}
+.ant-card-head {
+  border-bottom: 1px solid var(--border) !important;
+  background: transparent !important;
+}
+.ant-card-head-title {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+.ant-card-body {
+  color: var(--text-secondary) !important;
+}
+
+/* Statistic values — monospace numbers */
+.ant-statistic-content-value {
+  font-family: var(--font-mono) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+.ant-statistic-title {
+  font-size: 11px !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+/* Sidebar navigation */
+.ant-menu-dark {
+  background: transparent !important;
+}
+.ant-menu-dark .ant-menu-item {
+  border-radius: 8px !important;
+  margin: 2px 8px !important;
+  width: calc(100% - 16px) !important;
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  transition: all 0.2s ease !important;
+}
+.ant-menu-dark .ant-menu-item:hover {
+  background: var(--neon-muted) !important;
+  color: var(--neon) !important;
+  box-shadow: inset 3px 0 0 var(--neon) !important;
+}
+.ant-menu-dark .ant-menu-item-selected {
+  background: var(--neon-muted) !important;
+  color: var(--neon) !important;
+  box-shadow: inset 3px 0 0 var(--neon), var(--neon-glow-sm) !important;
+}
+.ant-menu-dark .ant-menu-item .anticon {
+  color: inherit !important;
+}
+
+/* Buttons */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #00ff88, #06b6d4) !important;
+  border: none !important;
+  color: #05070d !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  transition: all 0.2s ease !important;
+}
+.ant-btn-primary:hover {
+  opacity: 0.85 !important;
+  box-shadow: var(--neon-glow-md) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Tables */
+.dark-table .ant-table {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 12.5px !important;
+}
+.dark-table .ant-table-thead > tr > th {
+  background: rgba(0, 255, 136, 0.03) !important;
+  color: var(--neon) !important;
+  border-bottom: 1px solid var(--border) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+.dark-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  transition: background 0.15s ease !important;
+}
+.dark-table .ant-table-tbody > tr:hover > td {
+  background: rgba(0, 255, 136, 0.03) !important;
+}
+
+/* Tags */
+.ant-tag {
+  border-radius: 4px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Inputs & Autofill Fixes */
+.ant-input,
+.ant-input-password,
+.ant-input-affix-wrapper,
+.ant-input-affix-wrapper > input.ant-input,
+.ant-select-selector,
+.ant-input-number {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.ant-input-affix-wrapper {
+  background: var(--bg-tertiary) !important;
+}
+
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-input:focus,
+.ant-input-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--neon) !important;
+  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.15) !important;
+}
+
+/* Chrome / Edge / Safari Autofill Dark Override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+.ant-input:-webkit-autofill,
+.ant-input-affix-wrapper input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #0d1422 inset !important;
+  -webkit-text-fill-color: #f0fdf4 !important;
+  caret-color: #00ff88 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Modal */
+.ant-modal-content {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+}
+.ant-modal-header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.ant-modal-title {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+}
+
+/* Tooltip */
+.ant-tooltip-inner {
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  font-size: 12px !important;
+  border-radius: 8px !important;
+}
+
+/* Tabs */
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--neon) !important;
+}
+.ant-tabs-ink-bar {
+  background: var(--neon) !important;
+  box-shadow: var(--neon-glow-sm) !important;
+}
+.ant-tabs-tab:hover .ant-tabs-tab-btn {
+  color: var(--neon) !important;
+}
+
+/* Badge */
+.ant-badge-count {
+  background: var(--neon) !important;
+  color: #05070d !important;
+  font-weight: 700 !important;
+  font-family: var(--font-mono) !important;
+}
+
+/* Pagination */
+.ant-pagination-item-active {
+  background: var(--neon-muted) !important;
+  border-color: var(--neon) !important;
+}
+.ant-pagination-item-active a {
+  color: var(--neon) !important;
+}
+
+/* Divider */
+.ant-divider {
+  border-color: var(--border) !important;
+}
+
+/* Form labels */
+.ant-form-item-label > label {
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+/* ── Auth Page ──────────────────────────────────── */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Multi-layered cyber glow on auth */
+.auth-glow {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(0, 255, 136, 0.08) 0%, transparent 65%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+  animation: neonPulse 4s ease-in-out infinite;
+}
+.auth-glow::after {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.06) 0%, transparent 70%);
+  top: 50%;
+  left: 70%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Mobile Responsive ─────────────────────────────── */
+@media (max-width: 992px) {
+  /* Hide desktop fixed sidebar */
+  .ant-layout-sider {
+    display: none !important;
+  }
+
+  /* Remove desktop sidebar margin offset */
+  .ant-layout-sider + .ant-layout,
+  .ant-layout > .ant-layout {
+    margin-left: 0 !important;
+  }
+
+  /* Show hamburger button */
+  .mobile-menu-btn {
+    display: inline-flex !important;
+  }
+
+  /* Tighter content padding on mobile */
+  .ant-layout-content {
+    margin: 12px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .ant-card {
+    border-radius: 8px !important;
+  }
+
+  /* Stack stat cards on very small screens */
+  .ant-col {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+}
