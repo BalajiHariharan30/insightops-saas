@@ -7,7 +7,7 @@ import { STRUCTURED_QUERY_PROMPT } from './prompts/structured-query.prompt';
 
 export class GeminiProvider implements AIProvider {
   private readonly apiKey: string;
-  private readonly modelName = 'gemini-1.5-flash';
+  private readonly modelName = 'gemini-2.5-flash';
 
   constructor() {
     this.apiKey = config.AI_API_KEY;
