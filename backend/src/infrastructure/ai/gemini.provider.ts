@@ -96,7 +96,10 @@ Current User Question:
             ],
           },
         ],
-        generationConfig: requireJson ? { responseMimeType: 'application/json' } : undefined,
+        generationConfig: {
+          responseMimeType: requireJson ? 'application/json' : undefined,
+          temperature: requireJson ? 0.2 : 0.4,
+        },
       });
 
       const options = {

@@ -150,8 +150,8 @@ export const AIAssistant: React.FC = () => {
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Queried **${data.query?.collection}** collection. Found **${data.results?.length ?? 0}** record(s).`,
-        result: data,
+        content: data.chatResponse || `Queried **${data.query?.collection}** collection. Found **${data.results?.length ?? 0}** record(s).`,
+        result: data.query?.collection === 'chat' ? null : data,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);

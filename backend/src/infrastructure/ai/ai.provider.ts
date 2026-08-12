@@ -3,6 +3,7 @@ export interface AIStructuredQueryResponse {
   operation: string;
   pipeline: any[];
   visualization: 'bar' | 'line' | 'pie' | 'table' | 'card';
+  chatResponse?: string;
 }
 
 export interface AIProvider {

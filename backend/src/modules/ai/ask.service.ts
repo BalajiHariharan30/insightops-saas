@@ -84,19 +84,41 @@ export async function processAskQuery(
     );
     collectionName = structuredQuery.collection;
 
-    // 2. Run Query Sandboxing & Security Validation + Inject Tenancy scoping
+    // 2. Intercept general chat responses to bypass Mongoose aggregate pipelines
+    if (structuredQuery.collection === 'chat') {
+      // Save audit history (Success)
+      await AIQueryHistory.create({
+        organizationId,
+        userId,
+        prompt,
+        success: true,
+        collectionTarget: 'chat',
+      });
+
+      return {
+        query: {
+          collection: 'chat',
+          visualization: 'table',
+          pipeline: [],
+        },
+        chatResponse: structuredQuery.chatResponse || "Hello! I am your InsightOps operations assistant. How can I help you analyze your business database today?",
+        results: [],
+      };
+    }
+
+    // 3. Run Query Sandboxing & Security Validation + Inject Tenancy scoping
     const validated = validateQueryAndInjectTenant(structuredQuery, organizationId);
 
-    // 3. Map collection identifier to Mongoose model reference
+    // 4. Map collection identifier to Mongoose model reference
     const model = MODEL_MAP[validated.collection];
     if (!model) {
       throw new AppError('AI mapped query to an unsupported entity reference', 'AI_UNKNOWN_MODEL', 500);
     }
 
-    // 4. Run aggregate query sandbox execution (read-only)
+    // 5. Run aggregate query sandbox execution (read-only)
     const results = await model.aggregate(validated.pipeline).exec();
 
-    // 5. Save audit history (Success)
+    // 6. Save audit history (Success)
     await AIQueryHistory.create({
       organizationId,
       userId,
