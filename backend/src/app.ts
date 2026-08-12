@@ -25,6 +25,9 @@ import { setupSwagger } from './config/swagger';
 
 const app = express();
 
+// Trust proxy for rate limiting behind Render's load balancer
+app.set('trust proxy', 1);
+
 // Initialize Sentry error tracing at the very beginning of the pipeline
 initializeSentry(app);
 

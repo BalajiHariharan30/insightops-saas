@@ -17,6 +17,7 @@ const envSchema = z.object({
   AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
   FRONTEND_URL: z.string().url('FRONTEND_URL must be a valid URL'),
   SENTRY_DSN: z.string().url('SENTRY_DSN must be a valid URL').optional(),
+  GEMINI_MODEL: z.string().default('gemini-3.6-flash'),
 });
 
 const result = envSchema.safeParse(process.env);
