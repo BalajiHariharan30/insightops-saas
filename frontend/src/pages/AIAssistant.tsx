@@ -160,7 +160,7 @@ export const AIAssistant: React.FC = () => {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: '',
-        error: err.response?.data?.message || 'AI query failed. Please try rephrasing your question.',
+        error: err.response?.data?.message || 'Search query failed. Please try rephrasing your question.',
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -178,10 +178,10 @@ export const AIAssistant: React.FC = () => {
         <div>
           <h2 style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 10 }}>
             <RobotOutlined style={{ color: 'var(--neon)' }} />
-            InsightOps AI Assistant
+            InsightOps Smart Search
           </h2>
           <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: 13 }}>
-            Ask anything about your inventory, expenses, shifts, or alerts. Context-aware — remembers your conversation.
+            Query your database using natural questions. Context-aware — remembers your search session.
           </p>
         </div>
         {messages.length > 0 && (
@@ -338,7 +338,7 @@ export const AIAssistant: React.FC = () => {
             disabled={!prompt.trim()}
             style={{ background: 'var(--accent-glow)', minWidth: 100 }}
           >
-            Ask AI
+            Search
           </Button>
         </div>
       </Card>

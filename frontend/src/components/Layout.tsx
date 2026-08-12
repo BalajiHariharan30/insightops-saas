@@ -168,8 +168,8 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     { key: '/scheduling',  icon: <CalendarOutlined />, label: 'Scheduling' },
     { key: '/expenses',    icon: <DollarOutlined />,   label: 'Expenses' },
     { key: '/team',        icon: <TeamOutlined />,     label: 'Team & Access' },
-    { key: '/ai-assistant',icon: <MessageOutlined />,  label: 'AI Assistant' },
-    { key: '/reports',     icon: <FileTextOutlined />, label: 'AI Reports' },
+    { key: '/ai-assistant',icon: <MessageOutlined />,  label: 'Smart Search' },
+    { key: '/reports',     icon: <FileTextOutlined />, label: 'Ops Reports' },
     { key: '/billing',     icon: <CreditCardOutlined />, label: '💳 Billing & Plans' },
   ];
 

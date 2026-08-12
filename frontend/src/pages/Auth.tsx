@@ -74,7 +74,7 @@ export const Auth: React.FC = () => {
       <Card className="glass-panel auth-card animate-fade-in" bordered={false}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <h1 className="gradient-text" style={{ fontSize: 32, marginBottom: 4, fontWeight: 700 }}>InsightOps</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Multi-Tenant AI Business Operations Platform</p>
+          <p style={{ color: 'var(--text-muted)' }}>Multi-Tenant Business Operations Platform</p>
         </div>
 
         <Tabs activeKey={activeTab} onChange={setActiveTab} centered>

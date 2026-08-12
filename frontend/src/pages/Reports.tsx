@@ -35,13 +35,13 @@ export const Reports: React.FC = () => {
 
   const handleGenerateReport = async (type: 'WEEKLY' | 'MONTHLY') => {
     setGenerating(true);
-    message.loading(`Generating ${type.toLowerCase()} AI report...`, 2.5);
+    message.loading(`Generating ${type.toLowerCase()} operations report...`, 2.5);
     try {
       await api.post('/reports', { type });
-      message.success('AI report compiled successfully.');
+      message.success('Operations report compiled successfully.');
       loadReports();
     } catch (err: any) {
-      message.error(err.response?.data?.message || 'Failed to compile AI report.');
+      message.error(err.response?.data?.message || 'Failed to compile operations report.');
     } finally {
       setGenerating(false);
     }
@@ -157,7 +157,7 @@ export const Reports: React.FC = () => {
     <div>
       <Card
         className="glass-panel"
-        title="AI Operations Reports — India Edition"
+        title="Executive & Operations Reports — India Edition"
         extra={
           <Space>
             <Button
@@ -191,7 +191,7 @@ export const Reports: React.FC = () => {
       <Modal
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginRight: 24 }}>
-            <span>AI Summary: {selectedReport?.type} Report</span>
+            <span>Executive Summary: {selectedReport?.type} Report</span>
             {selectedReport?.status === 'GENERATED' && (
               <Button
                 type="primary"
@@ -211,7 +211,7 @@ export const Reports: React.FC = () => {
         width={720}
       >
         <div style={{ background: '#12131a', padding: 20, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', maxHeight: 500, overflowY: 'auto' }}>
-          <h4 style={{ color: 'var(--accent-glow)', marginTop: 0 }}>Executive AI Summary</h4>
+          <h4 style={{ color: 'var(--accent-glow)', marginTop: 0 }}>Executive Summary</h4>
           <p style={{ color: '#fff', fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
             {selectedReport?.summaryText || 'Compiling summary insights...'}
           </p>
