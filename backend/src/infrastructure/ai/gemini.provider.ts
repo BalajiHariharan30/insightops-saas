@@ -54,10 +54,37 @@ Current User Question:
     prompt: string,
     requireJson: boolean
   ): Promise<string> {
+    const maxRetries = 4;
+    let delay = 1500; // start with 1.5s delay
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.executeGeminiRequest(systemInstruction, prompt, requireJson);
+      } catch (error: any) {
+        // If it's the last attempt, or if it is not a transient server error, throw it
+        const statusCode = error.statusCode || 502;
+        const isTransient = statusCode === 502 || statusCode === 503 || statusCode === 429 || error.code === 'AI_CONNECT_ERROR' || error.message?.includes('unreachable');
+        
+        if (attempt === maxRetries || !isTransient) {
+          throw error;
+        }
+
+        logger.warn(`⚠️ Gemini API failed (attempt ${attempt}/${maxRetries}). Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2; // Exponential backoff
+      }
+    }
+    throw new AppError('Connection to AI provider failed after multiple attempts', 'AI_CONNECT_ERROR', 502);
+  }
+
+  private async executeGeminiRequest(
+    systemInstruction: string,
+    prompt: string,
+    requireJson: boolean
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${this.apiKey}`;
       
-      // Compose Gemini API payload
       const requestData = JSON.stringify({
         contents: [
           {
@@ -90,7 +117,8 @@ Current User Question:
         res.on('end', () => {
           if (res.statusCode && res.statusCode >= 400) {
             logger.error(`Gemini API error [${res.statusCode}]: ${body}`);
-            return reject(new AppError(`Gemini service error: Code ${res.statusCode}`, 'AI_PROVIDER_ERROR', 502));
+            const apiError = new AppError(`Gemini service error: Code ${res.statusCode}`, 'AI_PROVIDER_ERROR', res.statusCode);
+            return reject(apiError);
           }
 
           try {
