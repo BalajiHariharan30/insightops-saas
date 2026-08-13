@@ -7,11 +7,11 @@ import { config } from './index';
 import { logger } from './logger';
 
 if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
-  // In production the callback must point to the deployed backend URL, not localhost.
-  // Set BACKEND_URL in your Render environment variables.
+  // Use production URL in prod, localhost in dev — no env var needed on Render
   const BACKEND_URL =
-    (process.env.BACKEND_URL as string) ||
-    `http://localhost:${config.PORT}`;
+    config.NODE_ENV === 'production'
+      ? 'https://insightops-backend-6ktc.onrender.com'
+      : `http://localhost:${config.PORT}`;
 
   passport.use(
     new GoogleStrategy(
