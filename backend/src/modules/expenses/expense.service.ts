@@ -42,11 +42,12 @@ export async function createExpense(
 
   // Trigger Outlier Anomaly Detection (using approved items in same category)
   try {
+    // .lean() for read-only anomaly baseline — avoids Mongoose document hydration
     const historicalExpenses = await Expense.find({
       organizationId,
       category: payload.category,
       status: 'APPROVED',
-    }).select('amount').exec();
+    }).select('amount').lean().exec();
 
     const historicalValues = historicalExpenses.map(e => e.amount);
     const result = detectZScoreAnomaly(payload.amount, historicalValues, 3.0);
@@ -78,11 +79,12 @@ export async function getExpense(
   organizationId: string,
   expenseId: string
 ): Promise<IExpense> {
-  const expense = await Expense.findOne({ _id: expenseId, organizationId });
+  // .lean() for read-only fetch — no Mongoose document overhead
+  const expense = await Expense.findOne({ _id: expenseId, organizationId }).lean();
   if (!expense) {
     throw new NotFoundError('Expense record not found');
   }
-  return expense;
+  return expense as IExpense;
 }
 
 export async function listExpenses(
@@ -118,6 +120,7 @@ export async function updateExpense(
   userRole: 'ADMIN' | 'STAFF',
   actorUserId: string
 ): Promise<IExpense> {
+  // Fetch without lean so we can enforce RBAC check before update
   const expense = await Expense.findOne({ _id: expenseId, organizationId });
   if (!expense) {
     throw new NotFoundError('Expense record not found');
@@ -128,17 +131,22 @@ export async function updateExpense(
     throw new AuthorizationError('Only administrators are authorized to update expense approval status');
   }
 
-  Object.assign(expense, payload);
-  await expense.save();
+  // Atomic update — avoids extra save round-trip
+  const updated = await Expense.findOneAndUpdate(
+    { _id: expenseId, organizationId },
+    { $set: payload },
+    { new: true, runValidators: true }
+  ) as IExpense;
+
   await invalidateCachePattern(organizationId, 'analytics:*');
 
   // Record Audit Log entry
-  await logAction(organizationId, actorUserId, 'EXPENSE_UPDATED', 'Expense', expense._id.toString(), {
+  await logAction(organizationId, actorUserId, 'EXPENSE_UPDATED', 'Expense', expenseId, {
     updatedFields: Object.keys(payload),
     status: payload.status,
   });
 
-  return expense;
+  return updated;
 }
 
 export async function deleteExpense(

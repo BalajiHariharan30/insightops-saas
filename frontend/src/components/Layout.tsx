@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Layout as AntLayout, Menu, Dropdown, Button, Badge, Space,
   Modal, Form, Input, message, Drawer, Tag, Avatar, Divider,
@@ -13,18 +13,22 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
+import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import type { User, Membership } from '../types';
+import type { Membership } from '../types';
 
 const { Header, Sider, Content } = AntLayout;
 
-export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// React.memo prevents re-renders when parent re-renders with same props
+export const AppLayout: React.FC<{ children: React.ReactNode }> = React.memo(({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { connected } = useSocket();
 
+  // ── Auth state from global context (no duplicate /auth/me call) ───────
+  const { user, logout: authLogout } = useAuth();
+
   // ── Core state ────────────────────────────────────────────────
-  const [user, setUser] = useState<User | null>(null);
   const [organizations, setOrganizations] = useState<Membership[]>([]);
   const [activeOrgName, setActiveOrgName] = useState('Select Organization');
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -43,15 +47,14 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const [orgForm] = Form.useForm();
   const [profileForm] = Form.useForm();
 
-  // ── Data loading ──────────────────────────────────────────────
+  // ── Load organizations (user is already guaranteed by ProtectedRoute) ──
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const profileRes = await api.get('/auth/me');
-        const userData = profileRes.data.data;
-        setUser(userData);
-        profileForm.setFieldsValue({ name: userData.name, email: userData.email });
+    if (!user) return;
+    // Pre-populate profile form with user data from context
+    profileForm.setFieldsValue({ name: user.name, email: user.email });
 
+    const fetchOrgs = async () => {
+      try {
         const orgsRes = await api.get('/organizations');
         const orgsList: Membership[] = orgsRes.data.data;
         setOrganizations(orgsList);
@@ -66,15 +69,12 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
 
         if (current) setActiveOrgName(current.organization.name);
       } catch (err: any) {
-        const status = err?.response?.status;
-        // Only redirect to login for actual auth failures, not for other errors
-        if ((status === 401 || status === 403) && !window.location.pathname.includes('/auth')) {
-          navigate('/auth');
-        }
+        // Orgs load failure is non-fatal — silently log
+        console.error('Failed to load organizations:', err);
       }
     };
-    fetchUserData();
-  }, [navigate]);
+    fetchOrgs();
+  }, [user, profileForm]);
 
   const fetchAlerts = async () => {
     try {
@@ -102,22 +102,21 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     return () => { socket.off('expense.anomaly_detected'); };
   }, [socket]);
 
-  // ── Handlers ──────────────────────────────────────────────────
-  const handleOrgChange = (orgId: string, orgName: string) => {
+  // ── Handlers (useCallback prevents recreation on every render) ────────
+  const handleOrgChange = useCallback((orgId: string, orgName: string) => {
     localStorage.setItem('active_organization_id', orgId);
     setActiveOrgName(orgName);
     message.success(`Switched to: ${orgName}`);
     window.location.reload();
-  };
+  }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try { await api.post('/auth/logout'); } catch (_) {}
-    localStorage.removeItem('active_organization_id');
-    localStorage.removeItem('access_token');
+    authLogout();
     navigate('/auth');
-  };
+  }, [authLogout, navigate]);
 
-  const handleCreateOrg = async (values: { name: string; slug?: string }) => {
+  const handleCreateOrg = useCallback(async (values: { name: string; slug?: string }) => {
     setCreateOrgLoading(true);
     try {
       const slug = values.slug || values.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -132,23 +131,21 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     } finally {
       setCreateOrgLoading(false);
     }
-  };
+  }, [orgForm, handleOrgChange]);
 
-  const handleProfileSave = async (values: { name: string }) => {
+  const handleProfileSave = useCallback(async (values: { name: string }) => {
     setProfileLoading(true);
     try {
-      // Update name via a PUT if available, otherwise just update locally
       message.success(`Profile updated — welcome, ${values.name}!`);
-      setUser((prev) => prev ? { ...prev, name: values.name } : prev);
       setProfileModalOpen(false);
     } catch (err: any) {
       message.error('Failed to update profile.');
     } finally {
       setProfileLoading(false);
     }
-  };
+  }, []);
 
-  const handleDismissAlert = async (alertId: string) => {
+  const handleDismissAlert = useCallback(async (alertId: string) => {
     setDismissingId(alertId);
     try {
       await api.put(`/alerts/${alertId}/dismiss`);
@@ -159,10 +156,10 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     } finally {
       setDismissingId(null);
     }
-  };
+  }, []);
 
-  // ── Nav items ─────────────────────────────────────────────────
-  const menuItems = [
+  // ── Nav items (useMemo so array isn't recreated on every render) ────────
+  const menuItems = useMemo(() => [
     { key: '/',            icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/inventory',   icon: <InboxOutlined />,    label: 'Inventory' },
     { key: '/scheduling',  icon: <CalendarOutlined />, label: 'Scheduling' },
@@ -171,7 +168,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
     { key: '/ai-assistant',icon: <MessageOutlined />,  label: 'Smart Search' },
     { key: '/reports',     icon: <FileTextOutlined />, label: 'Ops Reports' },
     { key: '/billing',     icon: <CreditCardOutlined />, label: '💳 Billing & Plans' },
-  ];
+  ], []);
 
   const orgMenu = (
     <Menu style={{ minWidth: 230, background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
@@ -500,5 +497,6 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
       </Modal>
     </AntLayout>
   );
-};
+});
+AppLayout.displayName = 'AppLayout';
 export default AppLayout;

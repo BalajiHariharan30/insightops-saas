@@ -57,11 +57,12 @@ export async function getInventoryItem(
   organizationId: string,
   itemId: string
 ): Promise<IInventoryItem> {
-  const item = await InventoryItem.findOne({ _id: itemId, organizationId });
+  // .lean() returns a plain JS object (no Mongoose overhead) for read-only use
+  const item = await InventoryItem.findOne({ _id: itemId, organizationId }).lean();
   if (!item) {
     throw new NotFoundError('Inventory item not found');
   }
-  return item;
+  return item as IInventoryItem;
 }
 
 export async function listInventoryItems(
@@ -88,13 +89,15 @@ export async function updateInventoryItem(
     supplier?: string;
   }
 ): Promise<IInventoryItem> {
-  const item = await InventoryItem.findOne({ _id: itemId, organizationId });
+  // findOneAndUpdate is atomic — avoids the find+assign+save round-trip
+  const item = await InventoryItem.findOneAndUpdate(
+    { _id: itemId, organizationId },
+    { $set: payload },
+    { new: true, runValidators: true }
+  );
   if (!item) {
     throw new NotFoundError('Inventory item not found');
   }
-
-  Object.assign(item, payload);
-  await item.save();
   await invalidateCachePattern(organizationId, 'analytics:*');
   return item;
 }
