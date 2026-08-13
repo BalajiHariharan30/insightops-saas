@@ -13,7 +13,8 @@ export function initializeSentry(app: Express): void {
         // Enable Express tracing middlewares
         new Sentry.Integrations.Express({ app }),
       ],
-      tracesSampleRate: 1.0, // Trace 100% of transactions in dev/test, scale down in production
+      tracesSampleRate: 1.0,   // Trace 100% of transactions (reduce to 0.2 in high-traffic prod)
+      profilesSampleRate: 1.0, // Continuous profiling — flame graphs + bottleneck detection
       environment: config.NODE_ENV,
     });
 

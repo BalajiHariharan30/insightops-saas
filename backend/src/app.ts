@@ -19,6 +19,7 @@ import askRouter from './modules/ai/ask.routes';
 import alertRouter from './modules/alerts/alert.routes';
 import reportRouter from './modules/reports/report.routes';
 import billingRouter from './modules/billing/billing.routes';
+import auditRouter from './modules/audit/audit.routes';
 import './config/passport'; // ensure passport config is executed
 import { initializeSentry, registerSentryErrorHandler } from './config/sentry';
 import { setupSwagger } from './config/swagger';
@@ -97,6 +98,7 @@ app.use('/api/v1/ask', askRouter);
 app.use('/api/v1/alerts', alertRouter);
 app.use('/api/v1/reports', reportRouter);
 app.use('/api/v1/billing', billingRouter);
+app.use('/api/v1/audit', auditRouter);
 
 // Register Swagger Documentation Interactive UI Page
 setupSwagger(app);

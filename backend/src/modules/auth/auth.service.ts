@@ -1,12 +1,15 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { User, IUser } from '../users/user.model';
 import { RefreshToken } from './refresh-token.model';
+import { OtpToken } from './otp-token.model';
 import { generateAccessToken } from './jwt.utils';
 import { sendEmail } from '../../infrastructure/email/email.service';
 import { ConflictError, AuthenticationError, NotFoundError, AppError } from '../../utils/errors';
 import { Organization } from '../organizations/organization.model';
 import { OrganizationMember } from '../organizations/member.model';
+import { config } from '../../config';
 
 export interface AuthTokens {
   accessToken: string;
@@ -18,8 +21,15 @@ export interface AuthResponse {
     id: string;
     email: string;
     name: string;
+    mfaEnabled: boolean;
   };
   tokens: AuthTokens;
+}
+
+export interface MfaRequiredResponse {
+  mfaRequired: true;
+  mfaToken: string; // short-lived JWT used to verify OTP — NOT an access token
+  email: string;
 }
 
 export async function registerUser(name: string, email: string, password: string): Promise<IUser> {
@@ -68,7 +78,10 @@ export async function registerUser(name: string, email: string, password: string
   return user;
 }
 
-export async function loginUser(email: string, password: string): Promise<AuthResponse> {
+export async function loginUser(
+  email: string,
+  password: string
+): Promise<AuthResponse | MfaRequiredResponse> {
   const user = await User.findOne({ email: email.toLowerCase().trim() });
 
   if (!user) {
@@ -88,6 +101,26 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     throw new AuthenticationError('Incorrect password. Please try again.');
   }
 
+  // If MFA is enabled for this user, issue a short-lived MFA challenge token
+  // instead of full auth tokens. The client must verify the OTP before getting access.
+  if (user.mfaEnabled) {
+    // Generate and send OTP
+    await sendMfaOtp(user._id.toString(), user.email, user.name);
+
+    // Short-lived (10 min) token used only to authorize the /auth/verify-otp call
+    const mfaToken = jwt.sign(
+      { userId: user._id.toString(), purpose: 'mfa_challenge' },
+      config.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    return {
+      mfaRequired: true,
+      mfaToken,
+      email: user.email,
+    };
+  }
+
   const tokens = await generateAndSaveTokens(user._id.toString());
 
   return {
@@ -95,6 +128,7 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
       id: user._id.toString(),
       email: user.email,
       name: user.name,
+      mfaEnabled: user.mfaEnabled,
     },
     tokens,
   };
@@ -210,8 +244,111 @@ export async function loginGoogleUser(email: string): Promise<AuthResponse> {
       id: user._id.toString(),
       email: user.email,
       name: user.name,
+      mfaEnabled: user.mfaEnabled,
     },
     tokens,
   };
 }
 
+// ── MFA / OTP Functions ────────────────────────────────────────────────────
+
+/** Generate a 6-digit OTP, hash it, store it, and email it to the user. */
+export async function sendMfaOtp(
+  userId: string,
+  email: string,
+  name: string
+): Promise<void> {
+  // Invalidate any existing unused OTPs for this user
+  await OtpToken.deleteMany({ userId });
+
+  // Generate cryptographically secure 6-digit code
+  const code = String(crypto.randomInt(100000, 999999));
+  const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+  await OtpToken.create({
+    userId,
+    codeHash,
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    used: false,
+  });
+
+  await sendEmail({
+    to: email,
+    subject: 'InsightOps — Your Verification Code',
+    body: [
+      `Hello ${name},`,
+      '',
+      'Your InsightOps two-factor authentication code is:',
+      '',
+      `  ${code}`,
+      '',
+      'This code expires in 10 minutes. Do not share it with anyone.',
+      '',
+      'If you did not attempt to sign in, please reset your password immediately.',
+      '',
+      'Thanks,',
+      'InsightOps Security Team',
+    ].join('\n'),
+  });
+}
+
+/**
+ * Verify an MFA OTP code using the mfaToken issued during login.
+ * Returns full auth tokens on success.
+ */
+export async function verifyMfaOtp(
+  mfaToken: string,
+  code: string
+): Promise<AuthResponse> {
+  // Decode the short-lived mfa_challenge token
+  let payload: { userId: string; purpose: string };
+  try {
+    payload = jwt.verify(mfaToken, config.JWT_SECRET) as any;
+  } catch {
+    throw new AuthenticationError('MFA session has expired. Please log in again.');
+  }
+
+  if (payload.purpose !== 'mfa_challenge') {
+    throw new AuthenticationError('Invalid MFA token.');
+  }
+
+  const codeHash = crypto.createHash('sha256').update(code.trim()).digest('hex');
+
+  const otpRecord = await OtpToken.findOne({
+    userId: payload.userId,
+    codeHash,
+    used: false,
+    expiresAt: { $gt: new Date() },
+  });
+
+  if (!otpRecord) {
+    throw new AuthenticationError('Invalid or expired verification code.');
+  }
+
+  // Mark as used immediately (single-use)
+  otpRecord.used = true;
+  await otpRecord.save();
+
+  const user = await User.findById(payload.userId);
+  if (!user) throw new NotFoundError('User not found');
+
+  const tokens = await generateAndSaveTokens(user._id.toString());
+
+  return {
+    user: {
+      id: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      mfaEnabled: user.mfaEnabled,
+    },
+    tokens,
+  };
+}
+
+/** Enable or disable MFA for a user. */
+export async function toggleMfa(
+  userId: string,
+  enable: boolean
+): Promise<void> {
+  await User.findByIdAndUpdate(userId, { mfaEnabled: enable });
+}

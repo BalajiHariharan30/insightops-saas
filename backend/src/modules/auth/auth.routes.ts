@@ -17,6 +17,11 @@ router.get('/me', authenticate, authController.getMe);
 router.post('/forgot-password', validate(authValidation.requestPasswordResetSchema), authController.requestPasswordReset);
 router.post('/reset-password', validate(authValidation.resetPasswordSchema), authController.resetPassword);
 
+// MFA — OTP verification (public — uses short-lived mfaToken instead of auth header)
+router.post('/verify-otp', authController.verifyMfa);
+// MFA — Toggle on/off (protected — requires valid access token)
+router.put('/mfa', authenticate, authController.updateMfaSettings);
+
 // Google OAuth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
 router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/login', session: false }), authController.callbackGoogle);

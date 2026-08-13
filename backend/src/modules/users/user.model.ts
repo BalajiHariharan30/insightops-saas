@@ -9,6 +9,7 @@ export interface IUser extends Document {
   verificationToken?: string;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
+  mfaEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +44,7 @@ const userSchema = new Schema<IUser>(
     verificationToken: String,
     passwordResetToken: String,
     passwordResetExpires: Date,
+    mfaEnabled: { type: Boolean, default: false },
   },
   {
     timestamps: true,

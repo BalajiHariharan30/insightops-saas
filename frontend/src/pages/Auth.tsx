@@ -1,11 +1,157 @@
 import { useState } from 'react';
 import { Card, Form, Input, Button, Tabs, message, Divider } from 'antd';
-import { MailOutlined, LockOutlined, UserOutlined, GlobalOutlined } from '@ant-design/icons';
+import {
+  MailOutlined, LockOutlined, UserOutlined, GlobalOutlined,
+  SafetyCertificateOutlined, ArrowLeftOutlined, ReloadOutlined,
+} from '@ant-design/icons';
 import api from '../utils/api';
 
+// ── Types ─────────────────────────────────────────────────────────────────
+type AuthStep = 'credentials' | 'otp';
+
+interface MfaState {
+  mfaToken: string;
+  email: string;
+}
+
+// ── Helper: complete login and redirect ──────────────────────────────────
+function finalizeLogin(accessToken: string, organizations: any[]) {
+  if (accessToken) {
+    localStorage.setItem('access_token', accessToken);
+  }
+  if (organizations && organizations.length > 0) {
+    localStorage.setItem('active_organization_id', organizations[0].organization._id);
+  }
+  message.success('Welcome back!');
+  window.location.href = '/';
+}
+
+// ── OTP Verification Step ────────────────────────────────────────────────
+const OtpStep: React.FC<{
+  mfaState: MfaState;
+  onBack: () => void;
+}> = ({ mfaState, onBack }) => {
+  const [loading, setLoading] = useState(false);
+  const [code, setCode] = useState('');
+
+  const handleVerify = async () => {
+    if (code.length !== 6) {
+      message.warning('Please enter the full 6-digit code.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/verify-otp', {
+        mfaToken: mfaState.mfaToken,
+        code,
+      });
+      const { accessToken, organizations } = res.data.data;
+      finalizeLogin(accessToken, organizations);
+    } catch (err: any) {
+      message.error(err.response?.data?.error?.message || 'Invalid or expired code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div
+        style={{
+          width: 64, height: 64, borderRadius: '50%',
+          background: 'rgba(0, 255, 136, 0.1)',
+          border: '1px solid rgba(0, 255, 136, 0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 20px',
+        }}
+      >
+        <SafetyCertificateOutlined style={{ fontSize: 28, color: 'var(--accent-primary, #00ff88)' }} />
+      </div>
+
+      <h2 style={{ color: '#f0fdf4', margin: '0 0 6px', fontWeight: 700, fontSize: 20 }}>
+        Verification Required
+      </h2>
+      <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 24 }}>
+        A 6-digit code has been sent to<br />
+        <strong style={{ color: '#f0fdf4' }}>{mfaState.email}</strong>
+      </p>
+
+      {/* 6 individual OTP digit boxes */}
+      <Input
+        id="otp-input"
+        value={code}
+        onChange={(e) => {
+          const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+          setCode(val);
+        }}
+        onPressEnter={handleVerify}
+        size="large"
+        maxLength={6}
+        placeholder="_ _ _ _ _ _"
+        style={{
+          textAlign: 'center',
+          fontSize: 28,
+          fontFamily: 'var(--font-mono, monospace)',
+          letterSpacing: '0.4em',
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(0, 255, 136, 0.25)',
+          color: '#f0fdf4',
+          borderRadius: 10,
+          height: 60,
+          marginBottom: 20,
+        }}
+        autoFocus
+      />
+
+      <Button
+        type="primary"
+        size="large"
+        block
+        loading={loading}
+        disabled={code.length !== 6}
+        onClick={handleVerify}
+        style={{
+          background: 'var(--accent-glow, #00ff88)',
+          height: 44, fontWeight: 700, letterSpacing: '0.04em',
+          marginBottom: 12,
+        }}
+      >
+        Verify & Sign In
+      </Button>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={onBack}
+          style={{ flex: 1, background: 'transparent', borderColor: 'rgba(255,255,255,0.1)', color: '#94a3b8' }}
+        >
+          Back
+        </Button>
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={onBack}
+          style={{ flex: 1, background: 'transparent', borderColor: 'rgba(255,255,255,0.1)', color: '#94a3b8' }}
+        >
+          Resend Code
+        </Button>
+      </div>
+
+      <p style={{ color: '#475569', fontSize: 11, marginTop: 16 }}>
+        Code expires in 10 minutes
+      </p>
+    </div>
+  );
+};
+
+// ── Main Auth Page ────────────────────────────────────────────────────────
 export const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
+  const [authStep, setAuthStep] = useState<AuthStep>('credentials');
+  const [mfaState, setMfaState] = useState<MfaState | null>(null);
+
+  const [loginForm] = Form.useForm();
 
   const onFinishLogin = async (values: any) => {
     setLoading(true);
@@ -15,22 +161,19 @@ export const Auth: React.FC = () => {
         password: values.password,
       });
 
-      const { accessToken, organizations } = response.data.data;
+      const data = response.data.data;
 
-      // Store the access token so api.ts can attach it to all future requests
-      if (accessToken) {
-        localStorage.setItem('access_token', accessToken);
+      // If backend signals MFA required, switch to OTP step
+      if (data.mfaRequired) {
+        setMfaState({ mfaToken: data.mfaToken, email: data.email });
+        setAuthStep('otp');
+        return;
       }
 
-      // Store the first organization as the active context
-      if (organizations && organizations.length > 0) {
-        localStorage.setItem('active_organization_id', organizations[0].organization._id);
-      }
-
-      message.success('Welcome back!');
-      window.location.href = '/';
+      // Normal login — no MFA
+      finalizeLogin(data.accessToken, data.organizations);
     } catch (error: any) {
-      message.error(error.response?.data?.message || 'Login failed. Please check credentials.');
+      message.error(error.response?.data?.error?.message || error.response?.data?.message || 'Login failed. Please check credentials.');
     } finally {
       setLoading(false);
     }
@@ -47,12 +190,7 @@ export const Auth: React.FC = () => {
       });
 
       const { accessToken } = response.data.data;
-
-      // Store access token
-      if (accessToken) {
-        localStorage.setItem('access_token', accessToken);
-      }
-
+      if (accessToken) localStorage.setItem('access_token', accessToken);
       if (response.data.data.organization) {
         localStorage.setItem('active_organization_id', response.data.data.organization._id);
       }
@@ -66,8 +204,30 @@ export const Auth: React.FC = () => {
     }
   };
 
-  const [loginForm] = Form.useForm();
+  // ── OTP step — full card replaced ───────────────────────────────────────
+  if (authStep === 'otp' && mfaState) {
+    return (
+      <div className="auth-container">
+        <div className="auth-glow" />
+        <Card className="glass-panel auth-card animate-fade-in" bordered={false}>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <h1 className="gradient-text" style={{ fontSize: 32, marginBottom: 4, fontWeight: 700 }}>InsightOps</h1>
+            <p style={{ color: 'var(--text-muted)' }}>Multi-Tenant Business Operations Platform</p>
+          </div>
+          <OtpStep
+            mfaState={mfaState}
+            onBack={() => {
+              setAuthStep('credentials');
+              setMfaState(null);
+              loginForm.resetFields(['password']);
+            }}
+          />
+        </Card>
+      </div>
+    );
+  }
 
+  // ── Credentials step ─────────────────────────────────────────────────────
   return (
     <div className="auth-container">
       <div className="auth-glow" />
@@ -138,28 +298,16 @@ export const Auth: React.FC = () => {
 
           <Tabs.TabPane tab="Register Account" key="register">
             <Form name="register_form" layout="vertical" onFinish={onFinishRegister}>
-              <Form.Item
-                name="name"
-                rules={[{ required: true, message: 'Please enter your name!' }]}
-              >
+              <Form.Item name="name" rules={[{ required: true, message: 'Please enter your name!' }]}>
                 <Input prefix={<UserOutlined />} placeholder="Full Name" size="large" />
               </Form.Item>
-              <Form.Item
-                name="email"
-                rules={[{ required: true, message: 'Please enter your email!' }, { type: 'email', message: 'Invalid email' }]}
-              >
+              <Form.Item name="email" rules={[{ required: true, message: 'Please enter your email!' }, { type: 'email', message: 'Invalid email' }]}>
                 <Input prefix={<MailOutlined />} placeholder="Email Address" size="large" />
               </Form.Item>
-              <Form.Item
-                name="organizationName"
-                rules={[{ required: true, message: 'Please enter organization name!' }]}
-              >
+              <Form.Item name="organizationName" rules={[{ required: true, message: 'Please enter organization name!' }]}>
                 <Input prefix={<GlobalOutlined />} placeholder="Organization / Company Name" size="large" />
               </Form.Item>
-              <Form.Item
-                name="password"
-                rules={[{ required: true, message: 'Password must be at least 8 characters' }, { min: 8, message: 'Min length is 8' }]}
-              >
+              <Form.Item name="password" rules={[{ required: true, message: 'Password must be at least 8 characters' }, { min: 8, message: 'Min length is 8' }]}>
                 <Input.Password prefix={<LockOutlined />} placeholder="Password (Min 8 characters)" size="large" />
               </Form.Item>
 
