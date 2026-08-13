@@ -25,40 +25,32 @@ export const Dashboard: React.FC = () => {
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [categoryChartData, setCategoryChartData] = useState<ChartDataPoint[]>([]);
 
-  // 1. Fetch initial statistics, alerts, and chart data
+  // 1. Fetch ALL dashboard data in parallel — summary + alerts + chart at the same time
   const loadDashboardData = async () => {
     try {
-      const summaryRes = await api.get('/analytics/summary');
+      const [summaryRes, alertsRes, catRes] = await Promise.all([
+        api.get('/analytics/summary'),
+        api.get('/alerts'),
+        api.get<{ data: CategoryExpense[] }>('/analytics/expenses-by-category'),
+      ]);
+
       setMetrics(summaryRes.data.data);
-
-      const alertsRes = await api.get('/alerts');
       setAlerts(alertsRes.data.data);
-    } catch (err) {
-      console.error('Failed to load dashboard metrics:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const loadChartData = async () => {
-    setChartLoading(true);
-    try {
-      const catRes = await api.get<{ data: CategoryExpense[] }>('/analytics/expenses-by-category');
       const topCategories: ChartDataPoint[] = catRes.data.data
         .slice(0, 7)
         .map((item) => ({ name: item._id, value: item.totalAmount }));
       setCategoryChartData(topCategories);
     } catch (err) {
-      console.error('Failed to load chart data:', err);
-      setCategoryChartData([]);
+      console.error('Failed to load dashboard data:', err);
     } finally {
+      setLoading(false);
       setChartLoading(false);
     }
   };
 
   useEffect(() => {
     loadDashboardData();
-    loadChartData();
   }, []);
 
   // 2. Real-time updates subscription

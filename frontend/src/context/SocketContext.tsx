@@ -37,11 +37,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const SOCKET_URL = import.meta.env.VITE_SOCKET_URL as string ?? 'http://localhost:10000';
 
     // Connect to backend socket instance
+    // Use polling first so Render's proxy can establish the connection,
+    // then upgrade to websocket. Websocket-only fails behind Render's HTTP proxy.
     const socketInstance = io(SOCKET_URL, {
-      transports: ['websocket'],
+      transports: ['polling', 'websocket'],
       auth: {
         organizationId: activeOrgId,
       },
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
     });
 
     socketInstance.on('connect', () => {
