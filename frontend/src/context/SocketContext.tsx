@@ -34,23 +34,33 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    const SOCKET_URL = import.meta.env.VITE_SOCKET_URL as string ?? 'http://localhost:10000';
+    // Automatically derive socket URL from API URL if VITE_SOCKET_URL is missing
+    const apiBase = (import.meta.env.VITE_API_BASE_URL as string) || '';
+    const derivedSocketUrl = apiBase.replace(/\/api\/v1\/?$/, '').replace(/\/api\/?$/, '');
+    const SOCKET_URL =
+      (import.meta.env.VITE_SOCKET_URL as string) ||
+      derivedSocketUrl ||
+      'http://localhost:10000';
+
+    console.log('🔌 Attempting Socket connection to:', SOCKET_URL, 'for org:', activeOrgId);
 
     // Connect to backend socket instance
-    // Use polling first so Render's proxy can establish the connection,
-    // then upgrade to websocket. Websocket-only fails behind Render's HTTP proxy.
     const socketInstance = io(SOCKET_URL, {
       transports: ['polling', 'websocket'],
       auth: {
         organizationId: activeOrgId,
       },
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1500,
     });
 
     socketInstance.on('connect', () => {
       setConnected(true);
       console.log('🔌 Real-time Socket.io connected to room:', activeOrgId);
+    });
+
+    socketInstance.on('connect_error', (err) => {
+      console.warn('⚠️ Socket connection error:', err.message);
     });
 
     socketInstance.on('disconnect', () => {
