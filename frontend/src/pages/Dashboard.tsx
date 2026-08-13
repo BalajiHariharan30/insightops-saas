@@ -27,6 +27,19 @@ export const Dashboard: React.FC = () => {
 
   // 1. Fetch ALL dashboard data in parallel — summary + alerts + chart at the same time
   const loadDashboardData = async () => {
+    // Show stale cache immediately so page feels instant on repeat visits
+    const cached = localStorage.getItem('dashboard_cache');
+    if (cached) {
+      try {
+        const { metrics: m, alerts: a, chart: c } = JSON.parse(cached);
+        setMetrics(m);
+        setAlerts(a);
+        setCategoryChartData(c);
+        setLoading(false);
+        setChartLoading(false);
+      } catch (_) { /* ignore corrupt cache */ }
+    }
+
     try {
       const [summaryRes, alertsRes, catRes] = await Promise.all([
         api.get('/analytics/summary'),
@@ -34,13 +47,22 @@ export const Dashboard: React.FC = () => {
         api.get<{ data: CategoryExpense[] }>('/analytics/expenses-by-category'),
       ]);
 
-      setMetrics(summaryRes.data.data);
-      setAlerts(alertsRes.data.data);
-
-      const topCategories: ChartDataPoint[] = catRes.data.data
+      const freshMetrics = summaryRes.data.data;
+      const freshAlerts = alertsRes.data.data;
+      const freshChart: ChartDataPoint[] = catRes.data.data
         .slice(0, 7)
         .map((item) => ({ name: item._id, value: item.totalAmount }));
-      setCategoryChartData(topCategories);
+
+      setMetrics(freshMetrics);
+      setAlerts(freshAlerts);
+      setCategoryChartData(freshChart);
+
+      // Persist to cache for next visit
+      localStorage.setItem('dashboard_cache', JSON.stringify({
+        metrics: freshMetrics,
+        alerts: freshAlerts,
+        chart: freshChart,
+      }));
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {

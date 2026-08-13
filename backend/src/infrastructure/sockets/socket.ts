@@ -5,40 +5,51 @@ import { logger } from '../../config/logger';
 
 let io: SocketServer;
 
-export function initializeSockets(server: http.Server, origin: string): SocketServer {
+export function initializeSockets(server: http.Server, origin: string | string[]): SocketServer {
   io = new SocketServer(server, {
     cors: {
       origin,
       credentials: true,
       methods: ['GET', 'POST'],
     },
+    // Allow polling transport so connections work behind Render's reverse proxy
+    transports: ['polling', 'websocket'],
   });
 
   io.on('connection', (socket: Socket) => {
-    logger.info(`🔌 Client socket connected: ${socket.id}`);
+    const organizationId = (socket.handshake.auth as any)?.organizationId as string | undefined;
+    logger.info(`🔌 Client socket connected: ${socket.id} | org: ${organizationId || 'unknown'}`);
 
-    // Join tenant-isolated room
-    socket.on('join-organization', async ({ userId, organizationId }) => {
+    // Auto-join the org room using the auth payload sent during connect
+    // This removes the need for the client to manually emit 'join-organization'
+    if (organizationId) {
+      const roomName = `org:${organizationId}`;
+      socket.join(roomName);
+      logger.info(`👤 Socket ${socket.id} auto-joined room [${roomName}]`);
+      socket.emit('joined', { room: roomName });
+    }
+
+    // Keep manual join event for backward compatibility
+    socket.on('join-organization', async ({ userId, organizationId: orgId }) => {
       try {
-        if (!userId || !organizationId) {
+        if (!userId || !orgId) {
           socket.emit('error', { message: 'Missing join parameters' });
           return;
         }
 
-        // Multi-tenant check: assert user membership in organization
         const isMember = await OrganizationMember.exists({
           userId,
-          organizationId,
+          organizationId: orgId,
           status: 'ACTIVE',
         });
 
         if (isMember) {
-          const roomName = `org:${organizationId}`;
+          const roomName = `org:${orgId}`;
           socket.join(roomName);
           logger.info(`👤 Socket ${socket.id} joined private room [${roomName}]`);
           socket.emit('joined', { room: roomName });
         } else {
-          logger.warn(`🛑 Unauthorized room join attempt by socket ${socket.id} for org: ${organizationId}`);
+          logger.warn(`🛑 Unauthorized room join attempt by socket ${socket.id} for org: ${orgId}`);
           socket.emit('error', { message: 'Unauthorized room join access' });
         }
       } catch (err) {
