@@ -7,13 +7,18 @@ import { config } from './index';
 import { logger } from './logger';
 
 if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET) {
+  // In production the callback must point to the deployed backend URL, not localhost.
+  // Set BACKEND_URL in your Render environment variables.
+  const BACKEND_URL =
+    (process.env.BACKEND_URL as string) ||
+    `http://localhost:${config.PORT}`;
+
   passport.use(
     new GoogleStrategy(
       {
         clientID: config.GOOGLE_CLIENT_ID,
         clientSecret: config.GOOGLE_CLIENT_SECRET,
-        // Must point to the BACKEND server (port 10000), not the frontend (port 3000)
-        callbackURL: `http://localhost:${config.PORT}/api/v1/auth/google/callback`,
+        callbackURL: `${BACKEND_URL}/api/v1/auth/google/callback`,
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
