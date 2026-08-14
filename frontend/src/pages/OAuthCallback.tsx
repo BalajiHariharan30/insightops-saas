@@ -36,7 +36,8 @@ const OAuthCallback: React.FC = () => {
 
     if (token && orgId) {
       message.success('Signed in with Google successfully!');
-      navigate('/');
+      // Force a full page reload so AuthProvider initializes with the new token
+      window.location.href = '/';
     } else {
       message.error('Incomplete OAuth response. Redirecting to login.');
       navigate('/auth');
