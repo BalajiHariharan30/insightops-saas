@@ -11,6 +11,7 @@ const cookieOptions = {
   secure: config.NODE_ENV === 'production',
   sameSite: config.NODE_ENV === 'production' ? ('none' as const) : ('lax' as const),
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days matching token expiry
+  ...(config.NODE_ENV === 'production' ? { partitioned: true } : {}),
 };
 
 export async function register(req: Request, res: Response, next: NextFunction) {
