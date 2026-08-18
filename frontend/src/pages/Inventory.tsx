@@ -112,10 +112,46 @@ export const Inventory: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        let color = 'success';
-        if (status === 'LOW_STOCK') color = 'warning';
-        if (status === 'OUT_OF_STOCK') color = 'error';
-        return <Tag color={color}>{status.replace('_', ' ')}</Tag>;
+        if (status === 'LOW_STOCK') {
+          return (
+            <Tag 
+              style={{
+                background: 'rgba(245, 158, 11, 0.08)',
+                color: '#fbbf24',
+                borderColor: 'rgba(245, 158, 11, 0.25)',
+                fontWeight: 600,
+              }}
+            >
+              LOW STOCK
+            </Tag>
+          );
+        }
+        if (status === 'OUT_OF_STOCK') {
+          return (
+            <Tag 
+              style={{
+                background: 'rgba(239, 68, 68, 0.08)',
+                color: '#fca5a5',
+                borderColor: 'rgba(239, 68, 68, 0.25)',
+                fontWeight: 600,
+              }}
+            >
+              OUT OF STOCK
+            </Tag>
+          );
+        }
+        return (
+          <Tag 
+            style={{
+              background: 'rgba(0, 255, 136, 0.08)',
+              color: '#00ff88',
+              borderColor: 'rgba(0, 255, 136, 0.25)',
+              fontWeight: 600,
+            }}
+          >
+            IN STOCK
+          </Tag>
+        );
       },
     },
     {
@@ -186,14 +222,16 @@ export const Inventory: React.FC = () => {
       }
       bordered={false}
     >
-      <Table
-        dataSource={items}
-        columns={columns}
-        rowKey="_id"
-        pagination={false}
-        loading={loading}
-        className="dark-table"
-      />
+      <div style={{ minHeight: '530px' }}>
+        <Table
+          dataSource={items}
+          columns={columns}
+          rowKey="_id"
+          pagination={false}
+          loading={loading}
+          className="dark-table"
+        />
+      </div>
 
       <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between' }}>
         <Button disabled={!cursor} onClick={() => {}}>Previous</Button>

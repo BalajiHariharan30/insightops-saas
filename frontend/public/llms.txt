@@ -1,0 +1,12 @@
+# InsightOps
+
+InsightOps is an AI-powered multi-tenant operations dashboard covering inventory, scheduling, expenses, and analytics.
+
+## Links
+- [Dashboard](https://insightops-saas.vercel.app/)
+- [Inventory Ledger](https://insightops-saas.vercel.app/inventory)
+- [Staff Scheduling](https://insightops-saas.vercel.app/scheduling)
+- [Expense Tracking](https://insightops-saas.vercel.app/expenses)
+- [Smart Search Assistant](https://insightops-saas.vercel.app/ai-assistant)
+- [Operations Reports](https://insightops-saas.vercel.app/reports)
+- [Subscription Billing](https://insightops-saas.vercel.app/billing)
