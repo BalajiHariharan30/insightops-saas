@@ -9,7 +9,7 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    sourcemap: false,
+    sourcemap: true,
   },
   test: {
     globals: true,
